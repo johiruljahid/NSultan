@@ -1,0 +1,8 @@
+{
+  "name": "N Sultan - Royal 3D Dining",
+  "description": "A highly premium, immersive 3D restaurant website for N Sultan, featuring royal Bangladeshi cuisine, seductive food presentations, and seamless home delivery.",
+  "requestFramePermissions": [
+    "geolocation",
+    "microphone"
+  ]
+}
