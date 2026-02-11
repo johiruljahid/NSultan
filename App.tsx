@@ -1,17 +1,17 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import Navbar from './components/Navbar';
-import Hero from './components/Hero';
-import MenuCard from './components/MenuCard';
-import FoodDetail from './components/FoodDetail';
-import Cart from './components/Cart';
-import Background3D from './components/Background3D';
-import Booking from './components/Booking';
-import Checkout from './components/Checkout';
-import Admin from './components/Admin';
-import AIAssistant from './components/AIAssistant';
-import { MENU_ITEMS as INITIAL_MENU } from './constants';
-import { FoodItem, CartItem, AppView, Order, BookingRequest, GalleryImage } from './types';
+import Navbar from './components/Navbar.tsx';
+import Hero from './components/Hero.tsx';
+import MenuCard from './components/MenuCard.tsx';
+import FoodDetail from './components/FoodDetail.tsx';
+import Cart from './components/Cart.tsx';
+import Background3D from './components/Background3D.tsx';
+import Booking from './components/Booking.tsx';
+import Checkout from './components/Checkout.tsx';
+import Admin from './components/Admin.tsx';
+import AIAssistant from './components/AIAssistant.tsx';
+import { MENU_ITEMS as INITIAL_MENU } from './constants.tsx';
+import { FoodItem, CartItem, AppView, Order, BookingRequest, GalleryImage } from './types.ts';
 import { Sparkles, MapPin, ArrowRight, UtensilsCrossed, Crown, Camera, Users, Building, Armchair, X, Settings, ShieldCheck, Lock, ArrowRightCircle, Facebook, Instagram, MessageCircle, Mic, Headset } from 'lucide-react';
 
 const INITIAL_GALLERY: GalleryImage[] = [
@@ -37,12 +37,10 @@ const App: React.FC = () => {
   const [isAIOpen, setIsAIOpen] = useState(false);
   const [filter, setFilter] = useState<string>('all');
 
-  // Admin Auth States
   const [isAdminAuthOpen, setIsAdminAuthOpen] = useState(false);
   const [authCode, setAuthCode] = useState('');
   const [authError, setAuthError] = useState(false);
 
-  // Handle scroll to top whenever the view changes
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [view]);
@@ -160,7 +158,6 @@ const App: React.FC = () => {
         />
       )}
 
-      {/* Admin Auth Modal */}
       {isAdminAuthOpen && (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6 animate-in fade-in duration-500">
           <div className="absolute inset-0 bg-black/90 backdrop-blur-3xl" onClick={() => setIsAdminAuthOpen(false)}></div>
@@ -215,7 +212,6 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* Premium 3D AI Trigger */}
       {view !== 'admin' && !isAIOpen && (
         <button 
           onClick={() => setIsAIOpen(true)}
@@ -240,14 +236,11 @@ const App: React.FC = () => {
                    <Headset className="text-white drop-shadow-lg" size={32} />
                 </div>
              </div>
-             
-             {/* Pulsing indicator */}
              <div className="absolute top-1 right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-black animate-pulse shadow-[0_0_15px_#22c55e]"></div>
           </div>
         </button>
       )}
 
-      {/* AI Assistant Overlay */}
       <AIAssistant 
         isOpen={isAIOpen} 
         onClose={() => setIsAIOpen(false)} 
@@ -257,14 +250,12 @@ const App: React.FC = () => {
         onNewBooking={handleNewBooking}
       />
 
-      {/* Home View */}
       {view === 'home' && (
         <div className="animate-in fade-in duration-1000">
           <Hero 
             onExplore={() => setView('menu')} 
             onBooking={() => setView('booking')}
           />
-          
           <section className="py-20 md:py-40 container mx-auto px-6 relative">
              <div className="absolute top-0 right-0 w-96 h-96 bg-amber-600/5 blur-[150px] -z-10"></div>
              <div className="grid lg:grid-cols-2 gap-16 md:gap-32 items-center">
@@ -304,14 +295,12 @@ const App: React.FC = () => {
         </div>
       )}
       
-      {/* Menu View */}
       {view === 'menu' && (
         <div className="pt-32 md:pt-48 pb-20 md:pb-40 container mx-auto px-6 animate-in slide-in-from-bottom duration-1000">
           <div className="relative mb-20 md:mb-32 flex flex-col gap-12">
             <div className="absolute -top-32 left-0 w-full text-[18vw] font-black text-white/[0.02] select-none pointer-events-none uppercase tracking-tighter whitespace-nowrap overflow-hidden">
               {filter === 'all' ? 'FEASTING' : filter}
             </div>
-            
             <div className="relative z-10 space-y-6 md:space-y-8">
                <div className="flex items-center gap-4 md:gap-6">
                   <div className="p-2 md:p-3 bg-amber-600/20 border border-amber-600/40 rounded-xl md:rounded-2xl">
@@ -322,7 +311,6 @@ const App: React.FC = () => {
                      <p className="font-bangla text-gray-400 text-xs md:text-sm">সুলতানি রাজকীয় আয়োজন</p>
                   </div>
                </div>
-
                <h2 className="text-5xl md:text-[11rem] font-black tracking-tighter leading-[0.85] text-white">
                  THE ROYAL <br />
                  <span className="text-amber-600 italic font-serif flex items-center gap-4 md:gap-8">
@@ -331,7 +319,6 @@ const App: React.FC = () => {
                  </span>
                </h2>
             </div>
-
             <div className="flex flex-wrap items-center gap-2 md:gap-4 p-2 md:p-4 bg-zinc-900/50 backdrop-blur-3xl rounded-[20px] md:rounded-[40px] border border-white/5 shadow-2xl self-start overflow-x-auto no-scrollbar max-w-full">
               <button
                 onClick={() => setFilter('all')}
@@ -358,7 +345,6 @@ const App: React.FC = () => {
               ))}
             </div>
           </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-16 relative z-10">
             {filteredMenu.map(item => (
               <MenuCard key={item.id} item={item} onAddToCart={addToCart} onViewDetails={(food) => setSelectedFood(food)} />
@@ -367,7 +353,6 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* REST OF VIEWS (Gallery, Booking, etc) ... */}
       {view === 'gallery' && (
         <div className="pt-32 md:pt-48 pb-20 md:pb-40 container mx-auto px-6 animate-in fade-in zoom-in duration-1000">
            <h2 className="text-5xl md:text-9xl font-black text-white tracking-tighter mb-20 uppercase leading-none">THE ROYAL <br/><span className="text-amber-600 italic">ESTATE</span></h2>
@@ -420,11 +405,9 @@ const App: React.FC = () => {
         />
       )}
 
-      {/* Details Overlays */}
       {selectedFood && <FoodDetail item={selectedFood} onClose={() => setSelectedFood(null)} onAddToCart={addToCart} />}
       <Cart isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} items={cartItems} onUpdateQuantity={updateCartQuantity} onRemove={removeFromCart} onCheckout={startCheckout} />
 
-      {/* Footer */}
       {view !== 'admin' && (
         <footer className="bg-[#020202] border-t border-white/5 py-20 md:py-40">
            <div className="container mx-auto px-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 md:gap-20">
@@ -440,7 +423,6 @@ const App: React.FC = () => {
                    <Settings size={12} className="group-hover:rotate-90 transition-transform duration-500" /> Portal Access
                  </button>
               </div>
-              {/* ... Other footer cols ... */}
               <div>
                  <h5 className="font-black uppercase tracking-[0.4em] text-amber-500 text-sm mb-8">Reach Us</h5>
                  <ul className="space-y-4 text-gray-400">
