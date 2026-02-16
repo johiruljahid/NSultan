@@ -9,7 +9,6 @@ import Background3D from './components/Background3D.tsx';
 import Booking from './components/Booking.tsx';
 import Checkout from './components/Checkout.tsx';
 import Admin from './components/Admin.tsx';
-import AIAssistant from './components/AIAssistant.tsx';
 import { MENU_ITEMS as INITIAL_MENU } from './constants.tsx';
 import { FoodItem, CartItem, AppView, Order, BookingRequest, GalleryImage } from './types.ts';
 import { Sparkles, MapPin, ArrowRight, UtensilsCrossed, Crown, Camera, Users, Building, Armchair, X, Settings, ShieldCheck, Lock, ArrowRightCircle, Facebook, Instagram, MessageCircle, Mic, Headset } from 'lucide-react';
@@ -34,7 +33,6 @@ const App: React.FC = () => {
   const [selectedFood, setSelectedFood] = useState<FoodItem | null>(null);
   const [selectedGalleryImg, setSelectedGalleryImg] = useState<GalleryImage | null>(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const [isAIOpen, setIsAIOpen] = useState(false);
   const [filter, setFilter] = useState<string>('all');
 
   const [isAdminAuthOpen, setIsAdminAuthOpen] = useState(false);
@@ -212,44 +210,6 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {view !== 'admin' && !isAIOpen && (
-        <button 
-          onClick={() => setIsAIOpen(true)}
-          className="fixed bottom-6 right-6 md:bottom-12 md:right-12 z-[400] group flex items-center gap-4"
-        >
-          <div className="hidden md:flex flex-col items-end gap-1 translate-x-4 opacity-0 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-500">
-             <div className="bg-black/90 backdrop-blur-2xl border border-amber-600/30 px-6 py-2.5 rounded-2xl shadow-2xl">
-                <p className="text-amber-500 text-[10px] font-black uppercase tracking-[0.3em]">AI CONCIERGE</p>
-                <p className="font-bangla text-white text-xs whitespace-nowrap mt-1">"সুলতানার সাথে কথা বলুন"</p>
-             </div>
-          </div>
-
-          <div className="relative">
-             <div className="absolute inset-0 bg-amber-600 rounded-full blur-3xl opacity-20 group-hover:opacity-60 transition-opacity animate-pulse"></div>
-             <div className="relative w-16 h-16 sm:w-20 sm:h-20 md:w-28 md:h-28 bg-[#0a0a0a] border-2 md:border-4 border-amber-600/40 rounded-full p-1 shadow-[0_30px_60px_rgba(0,0,0,1)] overflow-hidden group-hover:scale-110 transition-all duration-500 flex items-center justify-center">
-                <img 
-                  src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=200&auto=format&fit=crop" 
-                  className="w-full h-full object-cover rounded-full saturate-[1.2] grayscale-[0.2] group-hover:grayscale-0 transition-all duration-500" 
-                  alt="AI Sultana" 
-                />
-                <div className="absolute inset-0 bg-amber-600/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                   <Headset className="text-white drop-shadow-lg" size={32} />
-                </div>
-             </div>
-             <div className="absolute top-1 right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-black animate-pulse shadow-[0_0_15px_#22c55e]"></div>
-          </div>
-        </button>
-      )}
-
-      <AIAssistant 
-        isOpen={isAIOpen} 
-        onClose={() => setIsAIOpen(false)} 
-        menuItems={menuItems}
-        orders={orders}
-        onNewOrder={handleNewOrder}
-        onNewBooking={handleNewBooking}
-      />
-
       {view === 'home' && (
         <div className="animate-in fade-in duration-1000">
           <Hero 
@@ -280,7 +240,7 @@ const App: React.FC = () => {
                      At N Sultan, we don't just cook; we weave a <span className="text-white font-bold">spell of flavors</span> that surrender your senses to the ultimate royal banquet. 
                    </p>
                    <p className="font-bangla text-2xl md:text-4xl text-gray-200 leading-relaxed italic border-l-4 md:border-l-8 border-amber-600 pl-6 md:pl-10 shadow-sm">
-                     এন সুলতানে রান্না হয় না, বরং রাজকীয় স্বাদের এক জাদুকরী মহাকাব্য রচিত হয়।
+                     এন সুলতানে রান্না হয় না, বরং রাজকীয় স্বাদের এক জাদুকরী মহাকাব্য রচিত হয়।
                    </p>
                    <button 
                      onClick={() => setView('menu')}
