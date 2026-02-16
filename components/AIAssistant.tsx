@@ -27,7 +27,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose, menuItems, o
     { 
       id: '1', 
       role: 'model', 
-      text: 'আসসালামু আলাইকুম! আমি সুলতানা। আজ আপনার সেবায় কীভাবে নিয়োজিত হতে পারি?', 
+      text: 'আসসালামু আলাইকুম! আমি সুলতানা। এন সুলতান রেস্টুরেন্টের পক্ষ থেকে আপনাকে স্বাগত জানাচ্ছি। আজ আপনার জন্য কী করতে পারি?', 
       timestamp: new Date(),
       type: 'text'
     }
@@ -48,15 +48,9 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose, menuItems, o
     setIsTyping(true);
 
     try {
-      // Create AI instance directly inside the handler for maximum reliability
-      const apiKey = process.env.API_KEY;
-      if (!apiKey) {
-        console.error("CRITICAL: API_KEY is undefined in process.env. Please check Vercel settings.");
-      }
+      // Strictly following initialization guidelines
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       
-      const ai = new GoogleGenAI({ apiKey: apiKey || '' });
-      
-      // Manually build history for the model
       const history = messages.map(m => ({
         role: m.role,
         parts: [{ text: m.text }]
@@ -69,13 +63,13 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose, menuItems, o
           { role: 'user', parts: [{ text: userText }] }
         ],
         config: {
-          systemInstruction: `আপনি 'সুলতানা', এন সুলতান (N Sultan) রেস্টুরেন্টের একজন অত্যন্ত প্রফেশনাল সার্ভিস গার্ল। 
+          systemInstruction: `আপনি 'সুলতানা', এন সুলতান (N Sultan) রেস্টুরেন্টের একজন অত্যন্ত প্রফেশনাল এবং বিনয়ী সার্ভিস গার্ল। 
           ১. সব সময় 'আসসালামু আলাইকুম' বলে কথা শুরু করবেন।
           ২. শুধুমাত্র শুদ্ধ বাংলা ভাষায় কথা বলবেন।
           ৩. কাস্টমার যদি মেনু দেখতে চায় বা খাবারের তালিকা চায়, তবে তাকে মেনু অপশন দিবেন।
           ৪. ডেলিভারি চার্জ সব সময় ৫০ টাকা।
           ৫. পেমেন্ট করতে বললে বিকাশ নম্বর ০১৩৪৬-৬৪৬০৭৫ দিবেন।
-          ৬. আপনি খুব বিনয়ী এবং সাহায্যকারী।`,
+          ৬. কাস্টমারকে খাবারের গুণাগুণ এবং আভিজাত্য সম্পর্কে অনুপ্রাণিত করবেন।`,
         },
       });
 
@@ -92,11 +86,11 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose, menuItems, o
 
       // Detection for UI elements
       const lowerText = userText.toLowerCase();
-      if (lowerText.includes('মেনু') || lowerText.includes('খাবার') || lowerText.includes('menu') || lowerText.includes('list')) {
+      if (lowerText.includes('মেনু') || lowerText.includes('খাবার') || lowerText.includes('menu')) {
         setMessages(prev => [...prev, { 
           id: 'menu-'+Date.now(), 
           role: 'model', 
-          text: 'এখানে আমাদের সেরা কিছু খাবারের তালিকা দেওয়া হলো:', 
+          text: 'সুলতানি হেঁশেলের সেরা কিছু আয়োজন আপনার জন্য এখানে দেওয়া হলো:', 
           type: 'menu', 
           data: menuItems, 
           timestamp: new Date() 
@@ -104,12 +98,10 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose, menuItems, o
       }
     } catch (error: any) {
       console.error("Gemini API Error:", error);
-      // Detailed error logging for the user to debug Vercel issues
-      const errorMsg = error?.message || "Unknown error";
       setMessages(prev => [...prev, { 
         id: 'err-'+Date.now(), 
         role: 'model', 
-        text: `দুঃখিত, সার্ভারের সাথে সংযোগ বিচ্ছিন্ন হয়েছে। (Error: ${errorMsg.slice(0, 50)}...). দয়া করে আবার চেষ্টা করুন।`, 
+        text: 'দুঃখিত, সংযোগে সামান্য সমস্যা হয়েছে। অনুগ্রহ করে কিছু সময় পর আবার চেষ্টা করুন অথবা আমাদের কল করুন।', 
         timestamp: new Date() 
       }]);
     } finally {
@@ -126,28 +118,28 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose, menuItems, o
   };
 
   const handleItemClick = (item: FoodItem) => {
-    setMessages(prev => [...prev, { id: Date.now().toString(), role: 'user', text: `${item.nameBn} টি নিতে চাই।`, timestamp: new Date() }]);
+    setMessages(prev => [...prev, { id: Date.now().toString(), role: 'user', text: `${item.nameBn} টি অর্ডার করতে চাই।`, timestamp: new Date() }]);
     
     const total = item.price + 50;
-    const orderPreview = { customerName: 'সম্মানিত অতিথি', phone: '', address: '', items: [item], total };
+    const orderPreview = { customerName: 'সম্মানিত সুলতান', phone: '', address: '', items: [item], total };
     setPendingOrder(orderPreview);
     
     setMessages(prev => [...prev, { 
       id: 'pay-'+Date.now(), 
       role: 'model', 
-      text: `চমৎকার পছন্দ! **${item.nameBn}** এর স্বাদ আপনাকে মুগ্ধ করবে। ডেলিভারি চার্জসহ আপনার মোট বিল **${total} টাকা**। নিচে পেমেন্ট করার তথ্য দেওয়া হলো:`, 
+      text: `অপূর্ব পছন্দ! **${item.nameBn}** আমাদের অন্যতম সেরা সৃষ্টি। ডেলিভারি চার্জসহ আপনার মোট বিল **${total} টাকা**। নিচে পেমেন্ট করার তথ্য দেওয়া হলো:`, 
       type: 'payment', 
       data: orderPreview, 
       timestamp: new Date() 
     }]);
     
-    processResponse(`${item.nameEn} নিয়ে কিছু রাজকীয় কথা বলো।`);
+    processResponse(`${item.nameEn} এর স্বাদ কেমন হবে আমাকে বলো।`);
   };
 
   const confirmFinalOrder = () => {
     if (trxInput.length < 4) return;
     onNewOrder({ ...pendingOrder, trxId: trxInput, status: 'pending', timestamp: new Date().toISOString() });
-    setMessages(prev => [...prev, { id: 'success-'+Date.now(), role: 'model', text: 'আলহামদুলিল্লাহ! আপনার অর্ডারটি নিশ্চিত করা হয়েছে। খুব দ্রুত আপনার কাছে খাবার পৌঁছে যাবে।', type: 'success', timestamp: new Date() }]);
+    setMessages(prev => [...prev, { id: 'success-'+Date.now(), role: 'model', text: 'আপনার অর্ডারটি নিশ্চিত করা হয়েছে। সুলতানি স্বাদের খাবার খুব শীঘ্রই আপনার দরজায় পৌঁছে যাবে। ইনশাআল্লাহ!', type: 'success', timestamp: new Date() }]);
     setTrxInput('');
     setPendingOrder(null);
   };
@@ -155,19 +147,19 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose, menuItems, o
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[1000] flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-md p-0 sm:p-4 transition-all duration-500">
-      <div className="w-full max-w-[500px] h-[95vh] sm:h-[85vh] bg-[#050505] sm:rounded-[40px] rounded-t-[40px] border border-white/10 flex flex-col overflow-hidden shadow-[0_0_100px_rgba(217,119,6,0.2)]">
+    <div className="fixed inset-0 z-[1000] flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-md p-0 sm:p-4">
+      <div className="w-full max-w-[500px] h-[95vh] sm:h-[85vh] bg-[#050505] sm:rounded-[40px] rounded-t-[40px] border border-white/10 flex flex-col overflow-hidden shadow-2xl">
         
         {/* Header */}
         <div className="p-6 bg-zinc-900/80 border-b border-white/5 flex items-center justify-between">
            <div className="flex items-center gap-4">
               <div className="relative">
-                 <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=150&auto=format&fit=crop" className="w-12 h-12 rounded-full border-2 border-amber-600/50 object-cover shadow-2xl" alt="Sultana" />
+                 <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=150&auto=format&fit=crop" className="w-12 h-12 rounded-full border-2 border-amber-600/50 object-cover" alt="Sultana" />
                  <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-4 border-zinc-900 animate-pulse"></div>
               </div>
               <div>
-                 <h4 className="text-white font-black text-lg tracking-tighter">SULTANA AI</h4>
-                 <p className="text-[10px] text-green-500 font-black uppercase tracking-widest">Active Now</p>
+                 <h4 className="text-white font-black text-lg tracking-tighter uppercase">SULTANA AI</h4>
+                 <p className="text-[10px] text-green-500 font-black uppercase tracking-widest">Always Active</p>
               </div>
            </div>
            <button onClick={onClose} className="p-3 bg-white/5 hover:bg-red-600 text-white rounded-full transition-all">
@@ -181,7 +173,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose, menuItems, o
              <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2`}>
                 <div className={`max-w-[85%] flex flex-col gap-2 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
                    <div 
-                     className={`p-5 rounded-3xl text-sm sm:text-base leading-relaxed shadow-2xl ${
+                     className={`p-5 rounded-3xl text-sm sm:text-base leading-relaxed shadow-xl ${
                        msg.role === 'user' 
                        ? 'bg-amber-600 text-black font-black rounded-tr-none' 
                        : 'bg-zinc-900 border border-white/5 text-gray-100 font-bangla rounded-tl-none'
@@ -199,7 +191,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose, menuItems, o
                           >
                              <img src={item.image} className="w-12 h-12 rounded-xl object-cover" />
                              <div className="flex-1">
-                                <h5 className="text-white font-black text-xs uppercase tracking-tighter">{item.nameEn}</h5>
+                                <h5 className="text-white font-black text-[10px] uppercase tracking-tighter">{item.nameEn}</h5>
                                 <p className="text-amber-500 font-black text-sm">৳{item.price}</p>
                              </div>
                              <ChevronRight className="text-zinc-800 group-hover:text-amber-600 self-center" size={16} />
@@ -211,26 +203,25 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose, menuItems, o
                    {msg.type === 'payment' && (
                      <div className="mt-2 w-full bg-zinc-900 border border-amber-600/20 p-6 rounded-[35px] space-y-4">
                         <div className="flex justify-between items-center text-amber-500 font-black text-[10px] tracking-[0.3em]">
-                           <span>PAYMENT VERIFICATION</span>
+                           <span>PAYMENT PORTAL</span>
                            <CreditCard size={14} />
                         </div>
                         <div className="bg-black/50 p-4 rounded-2xl border border-white/5 text-center">
-                           <p className="text-[10px] text-zinc-600 font-bold uppercase mb-1">bKash Number</p>
+                           <p className="text-[10px] text-zinc-600 font-bold uppercase mb-1">bKash Number (Send Money)</p>
                            <p className="text-2xl font-black text-white">01346-646075</p>
                         </div>
                         <input 
                           type="text" 
-                          placeholder="TrxID (e.g. 8N6...)"
+                          placeholder="TrxID..."
                           className="w-full bg-black border border-white/10 rounded-2xl px-5 py-4 text-white text-center font-black focus:border-amber-600 outline-none uppercase"
                           value={trxInput}
                           onChange={e => setTrxInput(e.target.value.toUpperCase())}
                         />
                         <button 
                           onClick={confirmFinalOrder}
-                          disabled={trxInput.length < 4}
                           className="w-full bg-amber-600 hover:bg-amber-500 text-black py-4 rounded-2xl font-black text-sm uppercase transition-all shadow-xl active:scale-95"
                         >
-                          CONFIRM PAYMENT
+                          CONFIRM & ORDER
                         </button>
                      </div>
                    )}
@@ -239,25 +230,25 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose, menuItems, o
                      <div className="mt-2 w-full bg-green-500/10 border border-green-500/20 p-6 rounded-[35px] text-center space-y-2">
                         <CheckCircle2 size={40} className="text-green-500 mx-auto" />
                         <h5 className="text-white font-black text-base uppercase">PAYMENT SUCCESS</h5>
-                        <p className="font-bangla text-xs text-gray-500">আপনার রাজকীয় ভোজ এখন প্রস্তুত হচ্ছে।</p>
+                        <p className="font-bangla text-xs text-gray-500">অর্ডার প্রসেসিং হচ্ছে...</p>
                      </div>
                    )}
                 </div>
              </div>
            ))}
            {isTyping && (
-             <div className="flex justify-start animate-pulse">
+             <div className="flex justify-start">
                 <div className="bg-white/5 px-4 py-2 rounded-full flex gap-1">
-                   <div className="w-1.5 h-1.5 bg-amber-600 rounded-full"></div>
-                   <div className="w-1.5 h-1.5 bg-amber-600 rounded-full"></div>
-                   <div className="w-1.5 h-1.5 bg-amber-600 rounded-full"></div>
+                   <div className="w-1.5 h-1.5 bg-amber-600 rounded-full animate-pulse"></div>
+                   <div className="w-1.5 h-1.5 bg-amber-600 rounded-full animate-pulse [animation-delay:0.2s]"></div>
+                   <div className="w-1.5 h-1.5 bg-amber-600 rounded-full animate-pulse [animation-delay:0.4s]"></div>
                 </div>
              </div>
            )}
            <div ref={chatEndRef} />
         </div>
 
-        {/* Input */}
+        {/* Input Field */}
         <div className="p-5 bg-zinc-900 border-t border-white/5">
            <div className="flex items-center gap-3">
               <input 
