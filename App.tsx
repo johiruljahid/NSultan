@@ -169,6 +169,10 @@ const App: React.FC = () => {
     await setDoc(doc(db, 'menu', item.id), item);
   };
 
+  const handleUpdateMenuItem = async (item: FoodItem) => {
+    await setDoc(doc(db, 'menu', item.id), item);
+  };
+
   const handleDeleteMenuItem = async (id: string) => {
     await deleteDoc(doc(db, 'menu', id));
   };
@@ -334,6 +338,7 @@ const App: React.FC = () => {
           orders={orders}
           bookings={bookings}
           onAddMenuItem={handleAddMenuItem}
+          onUpdateMenuItem={handleUpdateMenuItem}
           onDeleteMenuItem={handleDeleteMenuItem}
           onAddGalleryImage={handleAddGalleryImage}
           onDeleteGalleryImage={handleDeleteGalleryImage}
