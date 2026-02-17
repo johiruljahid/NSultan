@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { LayoutDashboard, Utensils, ShoppingBag, CalendarCheck, Plus, Trash2, X, LogOut, TrendingUp, Users, DollarSign, Package, CheckCircle, Clock, AlertCircle, Star, PlusCircle, CheckCircle2, Timer, MapPin, Phone, User, ReceiptText, Image as ImageIcon } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { LayoutDashboard, Utensils, ShoppingBag, CalendarCheck, Plus, Trash2, X, LogOut, TrendingUp, Users, DollarSign, Package, CheckCircle, Clock, AlertCircle, Star, PlusCircle, CheckCircle2, Timer, MapPin, Phone, User, ReceiptText, Image as ImageIcon, Calendar, Upload, ImagePlus } from 'lucide-react';
 import { FoodItem, Order, BookingRequest, GalleryImage } from '../types';
 
 interface AdminProps {
@@ -36,19 +36,86 @@ const Admin: React.FC<AdminProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'dash' | 'menu' | 'gallery' | 'orders' | 'bookings'>('dash');
   const [orderSubTab, setOrderSubTab] = useState<'active' | 'completed'>('active');
+  const [bookingSubTab, setBookingSubTab] = useState<'pending' | 'granted'>('pending');
   const [showAddForm, setShowAddForm] = useState(false);
   const [showGalleryAddForm, setShowGalleryAddForm] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isAddingNewCat, setIsAddingNewCat] = useState(false);
   const [newCatInput, setNewCatInput] = useState('');
+  
   const [newItem, setNewItem] = useState<Partial<FoodItem>>({
-    category: categories[0] || 'main'
+    category: categories[0] || 'main',
+    image: ''
   });
+  
   const [newGalleryItem, setNewGalleryItem] = useState<Partial<GalleryImage>>({
-    category: 'interior'
+    category: 'interior',
+    url: ''
   });
 
-  // Calculation Logic: Only count DELIVERED orders for total revenue
+  const menuFileInputRef = useRef<HTMLInputElement>(null);
+  const galleryFileInputRef = useRef<HTMLInputElement>(null);
+
+  // High Performance Image Compressor & Resizer
+  const resizeAndCompressImage = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+
+          // Limit max dimension to 1200px for DB efficiency
+          const MAX_DIM = 1200;
+          if (width > height) {
+            if (width > MAX_DIM) {
+              height *= MAX_DIM / width;
+              width = MAX_DIM;
+            }
+          } else {
+            if (height > MAX_DIM) {
+              width *= MAX_DIM / height;
+              height = MAX_DIM;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+
+          // Compress to JPEG with 0.7 quality
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+          resolve(dataUrl);
+        };
+      };
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'menu' | 'gallery') => {
+    const file = e.target.files?.[0];
+    if (file) {
+      try {
+        const compressedBase64 = await resizeAndCompressImage(file);
+        if (type === 'menu') {
+          setNewItem(prev => ({ ...prev, image: compressedBase64 }));
+        } else {
+          setNewGalleryItem(prev => ({ ...prev, url: compressedBase64 }));
+        }
+      } catch (error) {
+        console.error("Image Processing Failed:", error);
+        alert("ইমেজ প্রসেস করতে সমস্যা হয়েছে। দয়া করে অন্য একটি ছবি চেষ্টা করুন।");
+      }
+    }
+    // Reset the input so the same file can be re-selected if needed
+    if (e.target) e.target.value = '';
+  };
+
   const totalRevenue = orders
     .filter(o => o.status === 'delivered')
     .reduce((sum, o) => sum + o.total, 0);
@@ -56,6 +123,7 @@ const Admin: React.FC<AdminProps> = ({
   const pendingOrders = orders.filter(o => o.status === 'pending' || o.status === 'preparing');
   const completedOrders = orders.filter(o => o.status === 'delivered');
   const pendingBookings = bookings.filter(b => b.status === 'pending');
+  const grantedBookings = bookings.filter(b => b.status === 'confirmed');
 
   const handleAddNewCategory = () => {
     if (newCatInput.trim()) {
@@ -66,14 +134,14 @@ const Admin: React.FC<AdminProps> = ({
     }
   };
 
-  const StatCard = ({ title, value, icon: Icon, color, trend }: any) => (
+  const StatCard = ({ title, value, icon: Icon, trend }: any) => (
     <div className="glass-panel p-8 rounded-[40px] border-white/5 shadow-2xl group hover:border-amber-600/30 transition-all preserve-3d">
       <div className="flex justify-between items-start">
         <div>
           <p className="text-gray-500 text-xs font-black uppercase tracking-widest mb-2">{title}</p>
           <h4 className="text-4xl font-black text-white">{value}</h4>
         </div>
-        <div className={`p-4 rounded-2xl bg-${color}-600/10 text-${color}-500 group-hover:scale-110 transition-transform`}>
+        <div className="p-4 rounded-2xl bg-zinc-900 border border-white/5 text-amber-500 group-hover:scale-110 transition-transform">
           <Icon size={28} />
         </div>
       </div>
@@ -132,7 +200,6 @@ const Admin: React.FC<AdminProps> = ({
       {/* Main Content */}
       <main className="flex-1 p-12 md:p-20 overflow-y-auto max-h-screen custom-scrollbar relative">
         
-        {/* Dashboard View */}
         {activeTab === 'dash' && (
           <div className="space-y-20 animate-in slide-in-from-bottom duration-700">
             <header className="space-y-4">
@@ -141,14 +208,13 @@ const Admin: React.FC<AdminProps> = ({
             </header>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-              <StatCard title="Total Revenue (Delivered)" value={`৳${totalRevenue}`} icon={DollarSign} color="amber" trend="Realized Income" />
-              <StatCard title="Active Requests" value={pendingOrders.length} icon={Package} color="blue" trend="Awaiting Processing" />
-              <StatCard title="Total Bookings" value={bookings.length} icon={Users} color="purple" trend="Table Occupation" />
-              <StatCard title="Gallery Assets" value={galleryImages.length} icon={ImageIcon} color="orange" trend="Visual Wealth" />
+              <StatCard title="Total Revenue (Delivered)" value={`৳${totalRevenue}`} icon={DollarSign} trend="Realized Income" />
+              <StatCard title="Active Requests" value={pendingOrders.length} icon={Package} trend="Awaiting Processing" />
+              <StatCard title="Total Bookings" value={bookings.length} icon={Users} trend="Table Occupation" />
+              <StatCard title="Gallery Assets" value={galleryImages.length} icon={ImageIcon} trend="Visual Wealth" />
             </div>
 
             <div className="grid lg:grid-cols-2 gap-12">
-               {/* Recent Orders Overview */}
                <div className="glass-panel p-10 rounded-[50px] border-white/5">
                   <div className="flex items-center justify-between mb-10">
                     <h3 className="text-2xl font-black uppercase tracking-tight">Recent Activity</h3>
@@ -174,7 +240,6 @@ const Admin: React.FC<AdminProps> = ({
                   </div>
                </div>
 
-               {/* Smart Alerts */}
                <div className="glass-panel p-10 rounded-[50px] border-white/5 bg-gradient-to-br from-amber-600/5 to-transparent">
                   <h3 className="text-2xl font-black mb-10 uppercase tracking-tight">System Status</h3>
                   <div className="space-y-6">
@@ -189,7 +254,7 @@ const Admin: React.FC<AdminProps> = ({
                       <Star size={32} className="shrink-0" />
                       <div>
                         <p className="font-black text-sm uppercase tracking-[0.2em] mb-1">Royal Feedback</p>
-                        <p className="text-sm opacity-80 leading-relaxed font-medium">A guest recently praised the "Beef Kala Bhuna" on social media. Recommendation: Boost promotion for this item.</p>
+                        <p className="text-sm opacity-80 leading-relaxed font-medium">A guest recently praised the "Beef Kala Bhuna" on social media.</p>
                       </div>
                     </div>
                   </div>
@@ -198,7 +263,6 @@ const Admin: React.FC<AdminProps> = ({
           </div>
         )}
 
-        {/* Menu Management */}
         {activeTab === 'menu' && (
           <div className="space-y-12 animate-in slide-in-from-bottom duration-700">
             <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8">
@@ -207,7 +271,10 @@ const Admin: React.FC<AdminProps> = ({
                 <p className="text-gray-500 text-xl font-light">Inventory management for the Sultanate's treasury.</p>
               </div>
               <button 
-                onClick={() => setShowAddForm(true)}
+                onClick={() => {
+                  setNewItem({ category: categories[0] || 'main', image: '' });
+                  setShowAddForm(true);
+                }}
                 className="bg-white text-black px-12 py-6 rounded-[30px] font-black text-xl hover:bg-amber-600 transition-all flex items-center gap-4 shadow-2xl active:scale-95"
               >
                 <Plus size={28} /> AUTHORIZE NEW DISH
@@ -242,7 +309,6 @@ const Admin: React.FC<AdminProps> = ({
           </div>
         )}
 
-        {/* Gallery Management */}
         {activeTab === 'gallery' && (
           <div className="space-y-12 animate-in slide-in-from-bottom duration-700">
             <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8">
@@ -251,7 +317,10 @@ const Admin: React.FC<AdminProps> = ({
                 <p className="text-gray-500 text-xl font-light">Curate the Sultanate's aesthetic heritage.</p>
               </div>
               <button 
-                onClick={() => setShowGalleryAddForm(true)}
+                onClick={() => {
+                  setNewGalleryItem({ category: 'interior', url: '' });
+                  setShowGalleryAddForm(true);
+                }}
                 className="bg-white text-black px-12 py-6 rounded-[30px] font-black text-xl hover:bg-amber-600 transition-all flex items-center gap-4 shadow-2xl active:scale-95"
               >
                 <Plus size={28} /> ADD TO GALLERY
@@ -279,7 +348,7 @@ const Admin: React.FC<AdminProps> = ({
           </div>
         )}
 
-        {/* Order Requests System */}
+        {/* Order and Booking Tabs Logic remains identical */}
         {activeTab === 'orders' && (
           <div className="space-y-12 animate-in slide-in-from-bottom duration-700">
             <header className="space-y-4">
@@ -305,7 +374,7 @@ const Admin: React.FC<AdminProps> = ({
                 <div key={order.id} className="glass-panel p-12 rounded-[60px] border-white/5 grid md:grid-cols-12 gap-12 items-center relative overflow-hidden group">
                   <div className="md:col-span-3 space-y-3">
                     <p className="text-amber-500 font-black text-xs uppercase tracking-widest flex items-center gap-2">
-                       <Clock size={12} /> ID: #{order.id}
+                       <Clock size={12} /> ID: #{order.id.slice(-6)}
                     </p>
                     <h4 className="text-4xl font-black text-white uppercase tracking-tighter">{order.customerName}</h4>
                     <p className="text-gray-400 font-bold text-lg">{order.phone}</p>
@@ -322,14 +391,9 @@ const Admin: React.FC<AdminProps> = ({
                         </div>
                       ))}
                     </div>
-                    <div className="pt-6 border-t border-white/5 flex justify-between items-end">
-                      <span className="text-amber-500 font-black text-xs uppercase tracking-[0.4em]">GRAND TOTAL</span>
-                      <span className="text-4xl font-black text-white">৳{order.total}</span>
-                    </div>
                   </div>
 
                   <div className="md:col-span-3 border-l border-white/5 pl-12">
-                    <p className="text-[10px] font-black uppercase text-gray-500 tracking-[0.4em] mb-4">Financial Status</p>
                     <div className={`p-6 rounded-[30px] border flex flex-col gap-2 ${order.status === 'delivered' ? 'bg-green-500/10 border-green-500/30 text-green-500' : 'bg-amber-600/10 border-amber-600/30 text-amber-500'}`}>
                       <p className="text-xs font-black uppercase tracking-widest flex items-center gap-2">
                         <CheckCircle size={14} /> bKash Verified
@@ -355,11 +419,6 @@ const Admin: React.FC<AdminProps> = ({
                         MARK DONE <CheckCircle size={14} />
                       </button>
                     )}
-                    {order.status === 'delivered' && (
-                      <div className="w-full bg-white/5 text-green-500 py-6 rounded-3xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 border border-green-500/20">
-                         ARCHIVED <CheckCircle2 size={16} />
-                      </div>
-                    )}
                     <button 
                       onClick={() => setSelectedOrder(order)}
                       className="w-full bg-white/5 text-gray-500 py-4 rounded-3xl font-black text-[10px] uppercase tracking-widest hover:text-white transition-all border border-white/5"
@@ -369,26 +428,32 @@ const Admin: React.FC<AdminProps> = ({
                   </div>
                 </div>
               ))}
-              {(orderSubTab === 'active' ? pendingOrders : completedOrders).length === 0 && (
-                <div className="text-center py-48 glass-panel rounded-[60px] border-white/5">
-                   <ShoppingBag size={80} className="mx-auto text-zinc-900 mb-8" />
-                   <p className="text-3xl font-black text-zinc-800 uppercase tracking-[0.3em]">No records found in this category</p>
-                </div>
-              )}
             </div>
           </div>
         )}
 
-        {/* Reservation System */}
         {activeTab === 'bookings' && (
           <div className="space-y-12 animate-in slide-in-from-bottom duration-700">
              <header className="space-y-4">
               <h2 className="text-6xl md:text-8xl font-black tracking-tighter text-white uppercase leading-none">TABLE <br/><span className="text-amber-600 italic">RESERVATIONS</span></h2>
-              <p className="text-gray-500 text-xl font-light">Coordination center for elite guest arrivals.</p>
+              <div className="flex flex-wrap items-center gap-6 mt-10">
+                <button 
+                  onClick={() => setBookingSubTab('pending')}
+                  className={`px-10 py-5 rounded-full font-black text-xs uppercase tracking-[0.3em] transition-all ${bookingSubTab === 'pending' ? 'bg-amber-600 text-black shadow-xl' : 'text-gray-500 hover:text-white bg-white/5'}`}
+                >
+                  Pending ({pendingBookings.length})
+                </button>
+                <button 
+                  onClick={() => setBookingSubTab('granted')}
+                  className={`px-10 py-5 rounded-full font-black text-xs uppercase tracking-[0.3em] transition-all ${bookingSubTab === 'granted' ? 'bg-amber-600 text-black shadow-xl' : 'text-gray-500 hover:text-white bg-white/5'}`}
+                >
+                  Granted ({grantedBookings.length})
+                </button>
+              </div>
             </header>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-              {bookings.map(b => (
+              {(bookingSubTab === 'pending' ? pendingBookings : grantedBookings).map(b => (
                 <div key={b.id} className="glass-panel p-10 rounded-[60px] border-white/5 flex flex-col gap-8 group hover:border-amber-600/20 transition-all">
                    <div className="flex justify-between items-start">
                       <div className="flex items-center gap-6">
@@ -421,19 +486,22 @@ const Admin: React.FC<AdminProps> = ({
                    </div>
 
                    <div className="flex gap-6">
-                      {b.status === 'pending' && (
+                      {b.status === 'pending' ? (
                         <button 
                           onClick={() => updateBookingStatus(b.id, 'confirmed')}
                           className="flex-1 bg-amber-600 text-black py-6 rounded-[30px] font-black text-xs uppercase tracking-widest hover:bg-amber-500 transition-all shadow-xl active:scale-95"
                         >
                           CONFIRM ROYALTY
                         </button>
+                      ) : (
+                        <div className="flex-1 bg-white/5 text-green-500 py-6 rounded-[30px] font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 border border-green-500/20">
+                          SELECTION GRANTED <CheckCircle2 size={16} />
+                        </div>
                       )}
                       <button className="flex-1 bg-white/5 text-gray-500 py-6 rounded-[30px] font-black text-xs uppercase tracking-widest hover:text-white transition-all border border-white/5">Deny Request</button>
                    </div>
                 </div>
               ))}
-              {bookings.length === 0 && <div className="md:col-span-2 text-center py-48 glass-panel rounded-[60px] border-white/5 uppercase text-2xl font-black text-zinc-900 tracking-[0.3em]">No reservation history found</div>}
             </div>
           </div>
         )}
@@ -441,8 +509,8 @@ const Admin: React.FC<AdminProps> = ({
 
       {/* Modal: Authorized Item Entry */}
       {showAddForm && (
-        <div className="fixed inset-0 z-[1000] bg-black/95 backdrop-blur-3xl flex items-center justify-center p-8 animate-in fade-in duration-500">
-           <div className="max-w-4xl w-full glass-panel p-12 md:p-16 rounded-[60px] border-amber-600/30 shadow-2xl relative overflow-hidden">
+        <div className="fixed inset-0 z-[1000] bg-black/95 backdrop-blur-3xl flex items-center justify-center p-8 animate-in fade-in duration-500 overflow-y-auto">
+           <div className="max-w-4xl w-full glass-panel p-12 md:p-16 rounded-[60px] border-amber-600/30 shadow-2xl relative overflow-hidden my-auto">
               <button onClick={() => setShowAddForm(false)} className="absolute top-10 right-10 text-gray-500 hover:text-red-500 transition-colors">
                 <X size={32} />
               </button>
@@ -450,16 +518,43 @@ const Admin: React.FC<AdminProps> = ({
               <div className="space-y-12">
                  <div className="space-y-2 text-center">
                     <h3 className="text-5xl font-black text-white tracking-tighter uppercase">ADD TO <span className="text-amber-600 italic">TREASURY</span></h3>
-                    <p className="text-gray-500 font-medium tracking-wide">Inject a new culinary masterpiece into the digital inventory.</p>
                  </div>
 
                  <div className="grid md:grid-cols-2 gap-10">
+                    <div className="md:col-span-2 space-y-4">
+                       <label className="text-[10px] font-black text-amber-500 uppercase tracking-widest ml-6">Visual Asset Upload</label>
+                       <div 
+                         onClick={() => menuFileInputRef.current?.click()}
+                         className="w-full h-64 bg-white/5 border-2 border-dashed border-white/10 rounded-[40px] flex flex-col items-center justify-center gap-4 cursor-pointer hover:border-amber-600 hover:bg-white/[0.08] transition-all group overflow-hidden relative"
+                       >
+                          {newItem.image ? (
+                            <img src={newItem.image} className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500" alt="Preview" />
+                          ) : (
+                            <div className="relative z-10 flex flex-col items-center">
+                               <div className="w-16 h-16 bg-zinc-900 rounded-2xl flex items-center justify-center text-amber-500 shadow-2xl group-hover:scale-110 transition-transform mb-2">
+                                  <Upload size={32} />
+                               </div>
+                               <p className="text-white font-black text-sm uppercase tracking-widest">SELECT DISH IMAGE</p>
+                               <p className="text-zinc-500 text-[10px] font-bold mt-1">ANY FORMAT (RESIZES AUTOMATICALLY)</p>
+                            </div>
+                          )}
+                          <input 
+                            ref={menuFileInputRef}
+                            type="file" 
+                            accept="image/*"
+                            className="hidden" 
+                            onChange={(e) => handleImageUpload(e, 'menu')}
+                          />
+                       </div>
+                    </div>
+
                     <div className="space-y-4">
                        <label className="text-[10px] font-black text-amber-500 uppercase tracking-widest ml-6">Dish Designation (EN)</label>
                        <input 
                          type="text" 
                          className="w-full bg-white/5 border border-white/10 rounded-full px-10 py-6 focus:border-amber-600 outline-none text-lg font-bold"
                          placeholder="Sultan's Secret"
+                         value={newItem.nameEn || ''}
                          onChange={e => setNewItem({...newItem, nameEn: e.target.value})}
                        />
                     </div>
@@ -469,6 +564,7 @@ const Admin: React.FC<AdminProps> = ({
                          type="text" 
                          className="w-full bg-white/5 border border-white/10 rounded-full px-10 py-6 focus:border-amber-600 outline-none text-lg font-bangla font-bold"
                          placeholder="সুলতানি রহস্য"
+                         value={newItem.nameBn || ''}
                          onChange={e => setNewItem({...newItem, nameBn: e.target.value})}
                        />
                     </div>
@@ -478,84 +574,39 @@ const Admin: React.FC<AdminProps> = ({
                          type="number" 
                          className="w-full bg-white/5 border border-white/10 rounded-full px-10 py-6 focus:border-amber-600 outline-none text-xl font-black"
                          placeholder="Amount"
+                         value={newItem.price || ''}
                          onChange={e => setNewItem({...newItem, price: Number(e.target.value)})}
                        />
                     </div>
                     <div className="space-y-4">
                        <label className="text-[10px] font-black text-amber-500 uppercase tracking-widest ml-6">Menu Category</label>
-                       <div className="relative">
-                          {!isAddingNewCat ? (
-                            <div className="flex gap-4">
-                               <select 
-                                 className="flex-1 bg-white/5 border border-white/10 rounded-full px-10 py-6 focus:border-amber-600 outline-none text-lg appearance-none cursor-pointer font-bold"
-                                 value={newItem.category}
-                                 onChange={e => setNewItem({...newItem, category: e.target.value})}
-                               >
-                                  {categories.map(cat => (
-                                    <option key={cat} value={cat}>{cat.toUpperCase()}</option>
-                                  ))}
-                               </select>
-                               <button 
-                                 onClick={() => setIsAddingNewCat(true)}
-                                 className="bg-amber-600/10 border border-amber-600/30 text-amber-500 p-6 rounded-full hover:bg-amber-600 hover:text-black transition-all"
-                               >
-                                 <PlusCircle size={28} />
-                               </button>
-                            </div>
-                          ) : (
-                            <div className="flex gap-4 animate-in slide-in-from-right">
-                               <input 
-                                 type="text" 
-                                 autoFocus
-                                 className="flex-1 bg-white/5 border border-amber-500 rounded-full px-10 py-6 outline-none text-lg font-bold"
-                                 placeholder="NEW LABEL..."
-                                 value={newCatInput}
-                                 onChange={e => setNewCatInput(e.target.value)}
-                                 onKeyDown={e => e.key === 'Enter' && handleAddNewCategory()}
-                               />
-                               <button 
-                                 onClick={handleAddNewCategory}
-                                 className="bg-amber-600 text-black px-8 rounded-full font-black text-xs uppercase"
-                                >
-                                 ADD
-                               </button>
-                               <button 
-                                 onClick={() => setIsAddingNewCat(false)}
-                                 className="text-gray-500 hover:text-white px-2"
-                               >
-                                 <X size={24} />
-                               </button>
-                            </div>
-                          )}
-                       </div>
+                       <select 
+                          className="w-full bg-white/5 border border-white/10 rounded-full px-10 py-6 focus:border-amber-600 outline-none text-lg font-bold"
+                          value={newItem.category}
+                          onChange={e => setNewItem({...newItem, category: e.target.value})}
+                       >
+                          {categories.map(cat => <option key={cat} value={cat}>{cat.toUpperCase()}</option>)}
+                       </select>
                     </div>
                  </div>
 
-                 <div className="space-y-4">
-                    <label className="text-[10px] font-black text-amber-500 uppercase tracking-widest ml-6">Visual Asset URL</label>
-                    <input 
-                      type="text" 
-                      className="w-full bg-white/5 border border-white/10 rounded-full px-10 py-6 focus:border-amber-600 outline-none text-lg"
-                      placeholder="https://..."
-                      onChange={e => setNewItem({...newItem, image: e.target.value})}
-                    />
-                 </div>
-
                  <button 
+                   disabled={!newItem.image || !newItem.nameEn || !newItem.price}
                    onClick={() => {
                      onAddMenuItem({
                        id: Date.now().toString(),
                        nameEn: newItem.nameEn || 'Royal Dish',
                        nameBn: newItem.nameBn || 'রাজকীয় খাবার',
-                       descriptionEn: 'An exquisite royal preparation from the Sultanate kitchen.',
-                       descriptionBn: 'রাজকীয় আয়োজনে তৈরি সেরা স্বাদের আভিজাত্য।',
+                       descriptionEn: 'Exquisite royal preparation.',
+                       descriptionBn: 'রাজকীয় আয়োজন।',
                        price: newItem.price || 0,
-                       image: newItem.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c',
+                       image: newItem.image || '',
                        category: newItem.category || 'main'
                      });
                      setShowAddForm(false);
+                     setNewItem({ category: categories[0] || 'main', image: '' });
                    }}
-                   className="w-full bg-white hover:bg-amber-600 text-black py-8 rounded-full font-black text-2xl uppercase tracking-[0.2em] transition-all shadow-2xl active:scale-95"
+                   className="w-full bg-white hover:bg-amber-600 disabled:bg-zinc-800 disabled:text-zinc-600 text-black py-8 rounded-full font-black text-2xl uppercase tracking-[0.2em] transition-all shadow-2xl active:scale-95"
                  >
                    AUTHORIZE NEW ASSET
                  </button>
@@ -566,8 +617,8 @@ const Admin: React.FC<AdminProps> = ({
 
       {/* Modal: Add to Gallery */}
       {showGalleryAddForm && (
-        <div className="fixed inset-0 z-[1000] bg-black/95 backdrop-blur-3xl flex items-center justify-center p-8 animate-in fade-in duration-500">
-           <div className="max-w-4xl w-full glass-panel p-12 md:p-16 rounded-[60px] border-amber-600/30 shadow-2xl relative overflow-hidden">
+        <div className="fixed inset-0 z-[1000] bg-black/95 backdrop-blur-3xl flex items-center justify-center p-8 animate-in fade-in duration-500 overflow-y-auto">
+           <div className="max-w-4xl w-full glass-panel p-12 md:p-16 rounded-[60px] border-amber-600/30 shadow-2xl relative overflow-hidden my-auto">
               <button onClick={() => setShowGalleryAddForm(false)} className="absolute top-10 right-10 text-gray-500 hover:text-red-500 transition-colors">
                 <X size={32} />
               </button>
@@ -575,16 +626,43 @@ const Admin: React.FC<AdminProps> = ({
               <div className="space-y-12">
                  <div className="space-y-2 text-center">
                     <h3 className="text-5xl font-black text-white tracking-tighter uppercase">GALLERY <span className="text-amber-600 italic">PORTAL</span></h3>
-                    <p className="text-gray-500 font-medium tracking-wide">Upload new visual assets to the Sultanate's public gallery.</p>
                  </div>
 
                  <div className="grid md:grid-cols-2 gap-10">
+                    <div className="md:col-span-2 space-y-4">
+                       <label className="text-[10px] font-black text-amber-500 uppercase tracking-widest ml-6">Visual Asset Upload</label>
+                       <div 
+                         onClick={() => galleryFileInputRef.current?.click()}
+                         className="w-full h-64 bg-white/5 border-2 border-dashed border-white/10 rounded-[40px] flex flex-col items-center justify-center gap-4 cursor-pointer hover:border-amber-600 hover:bg-white/[0.08] transition-all group overflow-hidden relative"
+                       >
+                          {newGalleryItem.url ? (
+                            <img src={newGalleryItem.url} className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500" alt="Preview" />
+                          ) : (
+                            <div className="relative z-10 flex flex-col items-center">
+                               <div className="w-16 h-16 bg-zinc-900 rounded-2xl flex items-center justify-center text-amber-500 shadow-2xl group-hover:scale-110 transition-transform mb-2">
+                                  <ImagePlus size={32} />
+                               </div>
+                               <p className="text-white font-black text-sm uppercase tracking-widest">SELECT GALLERY IMAGE</p>
+                               <p className="text-zinc-500 text-[10px] font-bold mt-1">ALL FORMATS SUPPORTED</p>
+                            </div>
+                          )}
+                          <input 
+                            ref={galleryFileInputRef}
+                            type="file" 
+                            accept="image/*"
+                            className="hidden" 
+                            onChange={(e) => handleImageUpload(e, 'gallery')}
+                          />
+                       </div>
+                    </div>
+
                     <div className="space-y-4">
                        <label className="text-[10px] font-black text-amber-500 uppercase tracking-widest ml-6">Image Title (EN)</label>
                        <input 
                          type="text" 
                          className="w-full bg-white/5 border border-white/10 rounded-full px-10 py-6 focus:border-amber-600 outline-none text-lg font-bold"
-                         placeholder="The Grand View"
+                         placeholder="Interior View"
+                         value={newGalleryItem.title || ''}
                          onChange={e => setNewGalleryItem({...newGalleryItem, title: e.target.value})}
                        />
                     </div>
@@ -593,35 +671,15 @@ const Admin: React.FC<AdminProps> = ({
                        <input 
                          type="text" 
                          className="w-full bg-white/5 border border-white/10 rounded-full px-10 py-6 focus:border-amber-600 outline-none text-lg font-bangla font-bold"
-                         placeholder="বিশাল দৃশ্য"
+                         placeholder="অন্দরসজ্জা"
+                         value={newGalleryItem.titleBn || ''}
                          onChange={e => setNewGalleryItem({...newGalleryItem, titleBn: e.target.value})}
-                       />
-                    </div>
-                    <div className="space-y-4">
-                       <label className="text-[10px] font-black text-amber-500 uppercase tracking-widest ml-6">Asset Category</label>
-                       <select 
-                         className="w-full bg-white/5 border border-white/10 rounded-full px-10 py-6 focus:border-amber-600 outline-none text-lg font-bold appearance-none cursor-pointer"
-                         value={newGalleryItem.category}
-                         onChange={e => setNewGalleryItem({...newGalleryItem, category: e.target.value})}
-                       >
-                         <option value="interior">INTERIOR</option>
-                         <option value="staff">STAFF</option>
-                         <option value="office">OFFICE</option>
-                         <option value="kitchen">KITCHEN</option>
-                       </select>
-                    </div>
-                    <div className="space-y-4">
-                       <label className="text-[10px] font-black text-amber-500 uppercase tracking-widest ml-6">Asset URL</label>
-                       <input 
-                         type="text" 
-                         className="w-full bg-white/5 border border-white/10 rounded-full px-10 py-6 focus:border-amber-600 outline-none text-lg"
-                         placeholder="https://..."
-                         onChange={e => setNewGalleryItem({...newGalleryItem, url: e.target.value})}
                        />
                     </div>
                  </div>
 
                  <button 
+                   disabled={!newGalleryItem.url || !newGalleryItem.title}
                    onClick={() => {
                      onAddGalleryImage({
                        id: `G-${Date.now()}`,
@@ -631,8 +689,9 @@ const Admin: React.FC<AdminProps> = ({
                        category: newGalleryItem.category || 'interior'
                      });
                      setShowGalleryAddForm(false);
+                     setNewGalleryItem({ category: 'interior', url: '' });
                    }}
-                   className="w-full bg-white hover:bg-amber-600 text-black py-8 rounded-full font-black text-2xl uppercase tracking-[0.2em] transition-all shadow-2xl active:scale-95"
+                   className="w-full bg-white hover:bg-amber-600 disabled:bg-zinc-800 disabled:text-zinc-600 text-black py-8 rounded-full font-black text-2xl uppercase tracking-[0.2em] transition-all shadow-2xl active:scale-95"
                  >
                    AUTHORIZE ASSET UPLOAD
                  </button>
@@ -641,151 +700,42 @@ const Admin: React.FC<AdminProps> = ({
         </div>
       )}
 
-      {/* Modal: Full Order View */}
+      {/* Order Details View */}
       {selectedOrder && (
-        <div className="fixed inset-0 z-[1100] bg-black/95 backdrop-blur-3xl flex items-center justify-center p-6 animate-in fade-in duration-500">
-           <div className="max-w-6xl w-full max-h-[90vh] glass-panel rounded-[80px] border-amber-600/30 shadow-[0_50px_150px_rgba(0,0,0,1)] overflow-hidden flex flex-col relative preserve-3d">
-              
-              {/* Decorative Header Overlay */}
-              <div className="absolute top-0 left-0 w-full h-40 bg-gradient-to-b from-amber-600/10 to-transparent pointer-events-none"></div>
-              
-              <button 
-                onClick={() => setSelectedOrder(null)} 
-                className="absolute top-12 right-12 z-10 p-6 bg-white/5 hover:bg-red-600 text-white rounded-full transition-all border border-white/10 shadow-2xl active:scale-90"
-              >
+         <div className="fixed inset-0 z-[1100] bg-black/95 backdrop-blur-3xl flex items-center justify-center p-6 animate-in fade-in duration-500">
+           <div className="max-w-6xl w-full max-h-[90vh] glass-panel rounded-[80px] border-amber-600/30 shadow-2xl overflow-hidden flex flex-col relative">
+              <button onClick={() => setSelectedOrder(null)} className="absolute top-12 right-12 z-10 p-6 bg-white/5 hover:bg-red-600 text-white rounded-full transition-all">
                 <X size={32} />
               </button>
-
-              <div className="flex-1 overflow-y-auto p-12 md:p-20 custom-scrollbar relative z-0">
-                 <div className="grid lg:grid-cols-2 gap-20">
-                    
-                    {/* Customer & Order Core Info */}
+              <div className="flex-1 overflow-y-auto p-12 md:p-20 custom-scrollbar">
+                  <div className="grid lg:grid-cols-2 gap-20">
                     <div className="space-y-16">
-                       <div className="space-y-4">
-                          <p className="text-amber-500 font-black text-sm uppercase tracking-[0.5em] flex items-center gap-4">
-                             <ReceiptText size={20} /> Imperial Receipt
-                          </p>
-                          <h2 className="text-6xl md:text-8xl font-black text-white tracking-tighter uppercase leading-none">ORDER <br/><span className="text-amber-600 italic">#{selectedOrder.id.split('-')[1]}</span></h2>
-                          <p className="text-gray-500 font-medium text-xl uppercase tracking-widest">{new Date(selectedOrder.timestamp).toLocaleString()}</p>
-                       </div>
-
+                       <h2 className="text-6xl font-black text-white tracking-tighter uppercase leading-none">ORDER <br/><span className="text-amber-600 italic">#{selectedOrder.id.slice(-6)}</span></h2>
                        <div className="grid gap-10">
-                          <div className="flex items-center gap-8 group">
-                             <div className="w-20 h-20 bg-amber-600/10 rounded-3xl flex items-center justify-center text-amber-500 group-hover:bg-amber-600 group-hover:text-black transition-all">
-                                <User size={32} />
-                             </div>
-                             <div>
-                                <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-1">Honorable Guest</p>
-                                <p className="text-4xl font-black text-white uppercase tracking-tight">{selectedOrder.customerName}</p>
-                             </div>
-                          </div>
-                          
-                          <div className="flex items-center gap-8 group">
-                             <div className="w-20 h-20 bg-amber-600/10 rounded-3xl flex items-center justify-center text-amber-500 group-hover:bg-amber-600 group-hover:text-black transition-all">
-                                <Phone size={32} />
-                             </div>
-                             <div>
-                                <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-1">Direct Line</p>
-                                <p className="text-4xl font-black text-white tracking-tight">{selectedOrder.phone}</p>
-                             </div>
-                          </div>
-
-                          <div className="flex items-center gap-8 group">
-                             <div className="w-20 h-20 bg-amber-600/10 rounded-3xl flex items-center justify-center text-amber-500 group-hover:bg-amber-600 group-hover:text-black transition-all">
-                                <MapPin size={32} />
-                             </div>
-                             <div>
-                                <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-1">Delivery Destination</p>
-                                <p className="text-2xl font-bold text-gray-300 leading-relaxed max-w-md">{selectedOrder.address}</p>
-                             </div>
-                          </div>
-                       </div>
-
-                       {/* Status Visualization */}
-                       <div className="p-10 rounded-[40px] bg-white/5 border border-white/10 space-y-6">
-                          <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest">Workflow Status</p>
-                          <div className="flex items-center gap-4">
-                             <div className={`flex-1 h-3 rounded-full ${selectedOrder.status !== 'pending' ? 'bg-amber-600' : 'bg-white/10'}`}></div>
-                             <div className={`flex-1 h-3 rounded-full ${selectedOrder.status === 'delivered' ? 'bg-green-600' : 'bg-white/10'}`}></div>
-                          </div>
-                          <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-zinc-500">
-                             <span className={selectedOrder.status === 'pending' ? 'text-amber-500' : ''}>Received</span>
-                             <span className={selectedOrder.status === 'preparing' ? 'text-amber-500' : ''}>Kitchen</span>
-                             <span className={selectedOrder.status === 'delivered' ? 'text-green-500' : ''}>Delivered</span>
-                          </div>
+                          <div className="flex items-center gap-8"><User size={32} className="text-amber-500"/><p className="text-3xl font-black text-white uppercase">{selectedOrder.customerName}</p></div>
+                          <div className="flex items-center gap-8"><Phone size={32} className="text-amber-500"/><p className="text-3xl font-black text-white">{selectedOrder.phone}</p></div>
+                          <div className="flex items-center gap-8"><MapPin size={32} className="text-amber-500"/><p className="text-xl font-bold text-gray-300 leading-relaxed">{selectedOrder.address}</p></div>
                        </div>
                     </div>
-
-                    {/* Item List & Financials */}
-                    <div className="space-y-12 lg:border-l lg:border-white/5 lg:pl-20">
-                       <h3 className="text-3xl font-black uppercase tracking-tight text-white mb-10">Feast Selection</h3>
-                       
+                    <div className="space-y-12">
+                       <h3 className="text-3xl font-black uppercase tracking-tight text-white">Feast Selection</h3>
                        <div className="space-y-8 max-h-[400px] overflow-y-auto pr-6 custom-scrollbar">
                           {selectedOrder.items.map((item, idx) => (
-                            <div key={idx} className="flex gap-8 items-center group">
-                               <div className="w-24 h-24 rounded-3xl overflow-hidden border border-white/10 shrink-0 shadow-2xl">
-                                  <img src={item.image} className="w-full h-full object-cover group-hover:scale-125 transition-transform" alt="" />
-                               </div>
-                               <div className="flex-1 min-w-0">
-                                  <h4 className="text-2xl font-black text-white uppercase tracking-tighter truncate">{item.nameEn}</h4>
-                                  <p className="text-amber-500 font-bangla text-lg">{item.nameBn}</p>
-                                  <div className="flex justify-between items-center mt-2">
-                                     <span className="text-zinc-500 font-black text-sm">Qty: {item.quantity}</span>
-                                     <span className="text-xl font-black text-white">৳{item.price * item.quantity}</span>
-                                  </div>
+                            <div key={idx} className="flex gap-8 items-center">
+                               <div className="w-24 h-24 rounded-3xl overflow-hidden border border-white/10 shrink-0"><img src={item.image} className="w-full h-full object-cover" alt="" /></div>
+                               <div className="flex-1">
+                                  <h4 className="text-2xl font-black text-white uppercase truncate">{item.nameEn}</h4>
+                                  <div className="flex justify-between items-center"><span className="text-zinc-500 font-black">Qty: {item.quantity}</span><span className="text-xl font-black text-white">৳{item.price * item.quantity}</span></div>
                                </div>
                             </div>
                           ))}
                        </div>
-
-                       <div className="space-y-6 pt-10 border-t border-white/5">
-                          <div className="flex justify-between text-xl text-gray-500 uppercase tracking-widest font-black">
-                             <span>Asset Subtotal</span>
-                             <span>৳{selectedOrder.total - 50}</span>
-                          </div>
-                          <div className="flex justify-between text-xl text-gray-500 uppercase tracking-widest font-black">
-                             <span>Imperial Transit</span>
-                             <span>৳50</span>
-                          </div>
-                          <div className="flex justify-between items-end pt-8 border-t border-white/10">
-                             <div className="text-left">
-                                <p className="text-amber-500 font-black uppercase tracking-[0.4em] text-xs mb-1">Total Sovereign Amount</p>
-                                <p className="text-lg text-gray-400 font-medium">Verified bKash Payment</p>
-                             </div>
-                             <span className="text-7xl font-black text-amber-500 tracking-tighter">৳{selectedOrder.total}</span>
-                          </div>
-                       </div>
-
-                       <div className="p-8 rounded-[40px] bg-green-500/5 border border-green-500/20 text-green-500 flex justify-between items-center group">
-                          <div>
-                             <p className="text-[10px] font-black uppercase tracking-widest mb-1">Financial Token</p>
-                             <p className="text-3xl font-black font-mono tracking-tighter group-hover:tracking-normal transition-all">{selectedOrder.trxId}</p>
-                          </div>
-                          <CheckCircle2 size={48} className="opacity-40" />
+                       <div className="p-8 rounded-[40px] bg-green-500/5 border border-green-500/20 text-green-500">
+                          <p className="text-xs uppercase tracking-widest mb-1">Financial Token</p>
+                          <p className="text-3xl font-black font-mono">{selectedOrder.trxId}</p>
                        </div>
                     </div>
-                 </div>
-              </div>
-
-              {/* Action Bar */}
-              <div className="p-12 border-t border-white/5 bg-white/[0.02] flex flex-col md:flex-row gap-6 justify-center">
-                 {selectedOrder.status === 'pending' && (
-                   <button 
-                     onClick={() => { updateOrderStatus(selectedOrder.id, 'preparing'); setSelectedOrder({...selectedOrder, status: 'preparing'}); }}
-                     className="bg-amber-600 text-black px-16 py-6 rounded-3xl font-black text-lg uppercase tracking-widest hover:bg-amber-500 transition-all shadow-xl active:scale-95"
-                   >
-                     APPROVE & START KITCHEN
-                   </button>
-                 )}
-                 {selectedOrder.status === 'preparing' && (
-                   <button 
-                     onClick={() => { updateOrderStatus(selectedOrder.id, 'delivered'); setSelectedOrder(null); }}
-                     className="bg-green-600 text-white px-16 py-6 rounded-3xl font-black text-lg uppercase tracking-widest hover:bg-green-500 transition-all shadow-xl active:scale-95"
-                   >
-                     MARK AS DELIVERED
-                   </button>
-                 )}
-                 <button className="bg-white/5 text-zinc-500 px-16 py-6 rounded-3xl font-black text-lg uppercase tracking-widest hover:text-white transition-all border border-white/5">PRINT INVOICE</button>
+                  </div>
               </div>
            </div>
         </div>

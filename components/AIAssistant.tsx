@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI } from '@google/genai';
-import { X, Send, ShoppingBag, CheckCircle2, CreditCard, Clock, ChevronRight, MessageCircle } from 'lucide-react';
+import { X, Send, ShoppingBag, CheckCircle2, CreditCard, Clock, ChevronRight, MessageCircle, Crown, Star } from 'lucide-react';
 import { FoodItem, Order } from '../types.ts';
 
 interface Message {
@@ -48,7 +48,6 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose, menuItems, o
     setIsTyping(true);
 
     try {
-      // Strictly following initialization guidelines
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       
       const history = messages.map(m => ({
@@ -84,13 +83,12 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose, menuItems, o
         }]);
       }
 
-      // Detection for UI elements
       const lowerText = userText.toLowerCase();
       if (lowerText.includes('মেনু') || lowerText.includes('খাবার') || lowerText.includes('menu')) {
         setMessages(prev => [...prev, { 
           id: 'menu-'+Date.now(), 
           role: 'model', 
-          text: 'সুলতানি হেঁশেলের সেরা কিছু আয়োজন আপনার জন্য এখানে দেওয়া হলো:', 
+          text: 'সুলতানি হেঁশেলের রাজকীয় কিছু আয়োজন আপনার জন্য নিচে পরিবেশন করা হলো:', 
           type: 'menu', 
           data: menuItems, 
           timestamp: new Date() 
@@ -101,7 +99,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose, menuItems, o
       setMessages(prev => [...prev, { 
         id: 'err-'+Date.now(), 
         role: 'model', 
-        text: 'দুঃখিত, সংযোগে সামান্য সমস্যা হয়েছে। অনুগ্রহ করে কিছু সময় পর আবার চেষ্টা করুন অথবা আমাদের কল করুন।', 
+        text: 'দুঃখিত, সংযোগে সামান্য সমস্যা হয়েছে। অনুগ্রহ করে কিছু সময় পর আবার চেষ্টা করুন।', 
         timestamp: new Date() 
       }]);
     } finally {
@@ -133,7 +131,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose, menuItems, o
       timestamp: new Date() 
     }]);
     
-    processResponse(`${item.nameEn} এর স্বাদ কেমন হবে আমাকে বলো।`);
+    processResponse(`${item.nameEn} সম্পর্কে কিছু রাজকীয় কথা বলো।`);
   };
 
   const confirmFinalOrder = () => {
@@ -168,10 +166,10 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose, menuItems, o
         </div>
 
         {/* Chat Area */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-8 bg-gradient-to-b from-amber-600/5 to-transparent custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-8 bg-gradient-to-b from-amber-600/5 to-transparent custom-scrollbar">
            {messages.map((msg) => (
              <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2`}>
-                <div className={`max-w-[85%] flex flex-col gap-2 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+                <div className={`max-w-[90%] flex flex-col gap-2 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
                    <div 
                      className={`p-5 rounded-3xl text-sm sm:text-base leading-relaxed shadow-xl ${
                        msg.role === 'user' 
@@ -182,55 +180,87 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose, menuItems, o
                    />
 
                    {msg.type === 'menu' && (
-                     <div className="grid grid-cols-1 gap-2 w-full mt-2">
+                     <div className="grid grid-cols-1 gap-4 w-full mt-4 perspective-1000">
                         {msg.data.slice(0, 5).map((item: FoodItem) => (
                           <div 
                             key={item.id} 
                             onClick={() => handleItemClick(item)}
-                            className="bg-black border border-white/5 p-3 rounded-2xl flex gap-4 hover:border-amber-600 transition-all cursor-pointer group"
+                            className="relative group preserve-3d cursor-pointer active:scale-95 transition-all duration-500"
                           >
-                             <img src={item.image} className="w-12 h-12 rounded-xl object-cover" />
-                             <div className="flex-1">
-                                <h5 className="text-white font-black text-[10px] uppercase tracking-tighter">{item.nameEn}</h5>
-                                <p className="text-amber-500 font-black text-sm">৳{item.price}</p>
+                             <div className="relative h-32 w-full bg-[#0c0c0c] border border-white/5 rounded-[30px] overflow-hidden group-hover:border-amber-600/50 group-hover:shadow-[0_20px_40px_rgba(217,119,6,0.15)] transition-all flex items-center gap-4 p-4 transform-gpu group-hover:rotate-x-2 group-hover:translate-z-10">
+                                {/* Large 3D Background Text Effect */}
+                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-5xl font-black text-white/[0.02] select-none pointer-events-none uppercase tracking-tighter z-0">
+                                  ROYAL
+                                </div>
+                                
+                                <div className="relative z-10 w-24 h-24 rounded-2xl overflow-hidden border border-white/10 shrink-0 shadow-2xl group-hover:scale-105 transition-transform duration-500">
+                                   <img src={item.image} className="w-full h-full object-cover" alt={item.nameEn} />
+                                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                                </div>
+
+                                <div className="relative z-10 flex-1 min-w-0">
+                                   <div className="flex items-center gap-1 mb-1">
+                                      <Crown size={10} className="text-amber-500" />
+                                      <span className="text-[8px] font-black text-amber-500 uppercase tracking-widest">Sultanate Choice</span>
+                                   </div>
+                                   <h5 className="text-white font-black text-base sm:text-lg uppercase tracking-tighter leading-none mb-1 text-3d group-hover:text-amber-500 transition-colors truncate">
+                                      {item.nameEn}
+                                   </h5>
+                                   <p className="text-gray-400 font-bangla text-xs truncate mb-2">{item.nameBn}</p>
+                                   <div className="flex items-center justify-between">
+                                      <p className="text-amber-500 font-black text-xl tracking-tighter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">৳{item.price}</p>
+                                      <div className="bg-amber-600 text-black p-2 rounded-xl group-hover:bg-amber-500 transition-all shadow-lg">
+                                         <ChevronRight size={14} strokeWidth={4} />
+                                      </div>
+                                   </div>
+                                </div>
                              </div>
-                             <ChevronRight className="text-zinc-800 group-hover:text-amber-600 self-center" size={16} />
+                             {/* Depth shadow beneath card */}
+                             <div className="absolute inset-x-4 -bottom-1 h-2 bg-black/40 blur-md rounded-full -z-10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                           </div>
                         ))}
                      </div>
                    )}
 
                    {msg.type === 'payment' && (
-                     <div className="mt-2 w-full bg-zinc-900 border border-amber-600/20 p-6 rounded-[35px] space-y-4">
-                        <div className="flex justify-between items-center text-amber-500 font-black text-[10px] tracking-[0.3em]">
+                     <div className="mt-4 w-full bg-zinc-900 border border-amber-600/20 p-6 rounded-[35px] space-y-4 shadow-2xl relative overflow-hidden">
+                        <div className="absolute -top-10 -right-10 w-32 h-32 bg-amber-600/5 rounded-full blur-3xl"></div>
+                        <div className="flex justify-between items-center text-amber-500 font-black text-[10px] tracking-[0.3em] relative z-10">
                            <span>PAYMENT PORTAL</span>
-                           <CreditCard size={14} />
+                           <Crown size={14} />
                         </div>
-                        <div className="bg-black/50 p-4 rounded-2xl border border-white/5 text-center">
-                           <p className="text-[10px] text-zinc-600 font-bold uppercase mb-1">bKash Number (Send Money)</p>
-                           <p className="text-2xl font-black text-white">01346-646075</p>
+                        <div className="bg-black/50 p-6 rounded-2xl border border-white/5 text-center relative z-10">
+                           <p className="text-[10px] text-zinc-600 font-black uppercase mb-2 tracking-widest">Merchant Number (Send Money)</p>
+                           <p className="text-3xl font-black text-white tracking-tighter">01346-646075</p>
                         </div>
-                        <input 
-                          type="text" 
-                          placeholder="TrxID..."
-                          className="w-full bg-black border border-white/10 rounded-2xl px-5 py-4 text-white text-center font-black focus:border-amber-600 outline-none uppercase"
-                          value={trxInput}
-                          onChange={e => setTrxInput(e.target.value.toUpperCase())}
-                        />
+                        <div className="space-y-2 relative z-10">
+                          <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-4">Enter Transaction ID</label>
+                          <input 
+                            type="text" 
+                            placeholder="e.g. 8N6...X1"
+                            className="w-full bg-black border border-white/10 rounded-2xl px-5 py-5 text-white text-center font-black text-xl focus:border-amber-600 outline-none uppercase tracking-widest transition-all"
+                            value={trxInput}
+                            onChange={e => setTrxInput(e.target.value.toUpperCase())}
+                          />
+                        </div>
                         <button 
                           onClick={confirmFinalOrder}
-                          className="w-full bg-amber-600 hover:bg-amber-500 text-black py-4 rounded-2xl font-black text-sm uppercase transition-all shadow-xl active:scale-95"
+                          className="w-full bg-amber-600 hover:bg-amber-500 text-black py-5 rounded-2xl font-black text-base uppercase tracking-widest transition-all shadow-[0_10px_30px_rgba(217,119,6,0.3)] active:scale-95"
                         >
-                          CONFIRM & ORDER
+                          CONFIRM ROYAL ORDER
                         </button>
                      </div>
                    )}
 
                    {msg.type === 'success' && (
-                     <div className="mt-2 w-full bg-green-500/10 border border-green-500/20 p-6 rounded-[35px] text-center space-y-2">
-                        <CheckCircle2 size={40} className="text-green-500 mx-auto" />
-                        <h5 className="text-white font-black text-base uppercase">PAYMENT SUCCESS</h5>
-                        <p className="font-bangla text-xs text-gray-500">অর্ডার প্রসেসিং হচ্ছে...</p>
+                     <div className="mt-4 w-full bg-green-500/10 border border-green-500/20 p-8 rounded-[40px] text-center space-y-4 shadow-2xl animate-in zoom-in duration-500">
+                        <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto shadow-[0_0_30px_rgba(34,197,94,0.3)]">
+                           <CheckCircle2 size={32} className="text-black" />
+                        </div>
+                        <div>
+                          <h5 className="text-white font-black text-lg uppercase tracking-tighter">ORDER VERIFIED</h5>
+                          <p className="font-bangla text-sm text-gray-500 mt-1">আপনার আভিজাত্যের যাত্রা শুরু হলো...</p>
+                        </div>
                      </div>
                    )}
                 </div>
@@ -238,10 +268,10 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose, menuItems, o
            ))}
            {isTyping && (
              <div className="flex justify-start">
-                <div className="bg-white/5 px-4 py-2 rounded-full flex gap-1">
-                   <div className="w-1.5 h-1.5 bg-amber-600 rounded-full animate-pulse"></div>
-                   <div className="w-1.5 h-1.5 bg-amber-600 rounded-full animate-pulse [animation-delay:0.2s]"></div>
-                   <div className="w-1.5 h-1.5 bg-amber-600 rounded-full animate-pulse [animation-delay:0.4s]"></div>
+                <div className="bg-white/5 px-6 py-3 rounded-full flex gap-1.5 shadow-xl">
+                   <div className="w-2 h-2 bg-amber-600 rounded-full animate-bounce"></div>
+                   <div className="w-2 h-2 bg-amber-600 rounded-full animate-bounce [animation-delay:0.2s]"></div>
+                   <div className="w-2 h-2 bg-amber-600 rounded-full animate-bounce [animation-delay:0.4s]"></div>
                 </div>
              </div>
            )}
@@ -249,22 +279,22 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose, menuItems, o
         </div>
 
         {/* Input Field */}
-        <div className="p-5 bg-zinc-900 border-t border-white/5">
+        <div className="p-5 bg-zinc-900 border-t border-white/5 relative z-10">
            <div className="flex items-center gap-3">
               <input 
                 type="text" 
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                placeholder="Message Sultana..." 
-                className="flex-1 bg-black border border-white/10 rounded-full px-6 py-4 text-white text-sm focus:border-amber-600 outline-none transition-all font-bangla"
+                placeholder="মহারাজ, কী আদেশ আপনার?..." 
+                className="flex-1 bg-black border border-white/10 rounded-full px-6 py-5 text-white text-sm focus:border-amber-600 outline-none transition-all font-bangla placeholder:opacity-40"
               />
               <button 
                 onClick={handleSend}
                 disabled={!inputValue.trim() || isTyping}
-                className="p-4 bg-amber-600 hover:bg-amber-500 text-black rounded-full transition-all active:scale-95 shadow-xl shadow-amber-600/20"
+                className="p-5 bg-amber-600 hover:bg-amber-500 text-black rounded-full transition-all active:scale-95 shadow-[0_10px_30px_rgba(217,119,6,0.3)] disabled:opacity-50 disabled:bg-zinc-800"
               >
-                 <Send size={18} />
+                 <Send size={20} />
               </button>
            </div>
         </div>

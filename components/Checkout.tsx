@@ -7,7 +7,7 @@ import html2canvas from 'html2canvas';
 interface CheckoutProps {
   items: CartItem[];
   onBack: () => void;
-  onOrderSuccess: () => void;
+  onOrderSuccess: (data: any) => void;
   onNavigateToMenu: () => void;
 }
 
@@ -27,9 +27,7 @@ const Checkout: React.FC<CheckoutProps> = ({ items, onBack, onOrderSuccess, onNa
 
   const downloadInvoice = async () => {
     if (invoiceRef.current) {
-      // Ensure images are loaded before capture
       const images = invoiceRef.current.getElementsByTagName('img');
-      // Fix: Cast the element to HTMLImageElement to resolve TS errors on complete, onload, and onerror
       const promises = Array.from(images).map((img) => {
         const image = img as HTMLImageElement;
         if (image.complete) return Promise.resolve();
@@ -43,7 +41,7 @@ const Checkout: React.FC<CheckoutProps> = ({ items, onBack, onOrderSuccess, onNa
 
       const canvas = await html2canvas(invoiceRef.current, {
         backgroundColor: '#050505',
-        scale: 3, // Higher scale for ultra-sharp 3D look
+        scale: 3,
         useCORS: true,
         logging: false,
       });
@@ -57,7 +55,7 @@ const Checkout: React.FC<CheckoutProps> = ({ items, onBack, onOrderSuccess, onNa
   const handleFinish = (e: React.FormEvent) => {
     e.preventDefault();
     setStep('success');
-    onOrderSuccess();
+    onOrderSuccess(formData);
   };
 
   if (step === 'success') {
@@ -66,7 +64,6 @@ const Checkout: React.FC<CheckoutProps> = ({ items, onBack, onOrderSuccess, onNa
         <div className="absolute inset-0 bg-glow opacity-20 pointer-events-none"></div>
         
         <div className="relative max-w-2xl w-full glass-panel p-8 md:p-16 rounded-[50px] border-amber-600/40 shadow-[0_0_150px_rgba(217,119,6,0.2)] text-center animate-in zoom-in duration-500 overflow-hidden">
-           {/* Decorative corner */}
            <div className="absolute -top-10 -right-10 w-40 h-40 bg-amber-600/10 rounded-full blur-3xl"></div>
            
            <div className="relative z-10 flex flex-col items-center">
@@ -106,14 +103,11 @@ const Checkout: React.FC<CheckoutProps> = ({ items, onBack, onOrderSuccess, onNa
            </div>
         </div>
 
-        {/* --- LUXURY 3D INVOICE TEMPLATE (Hidden from UI, used for capture) --- */}
         <div className="fixed left-[-9999px]">
           <div ref={invoiceRef} className="w-[1000px] p-24 bg-[#050505] text-white overflow-hidden relative" style={{ fontFamily: 'Playfair Display, serif' }}>
-            {/* Background Decorations */}
             <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-amber-600/5 rounded-full blur-[150px]"></div>
             <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-amber-600/5 rounded-full blur-[150px]"></div>
             
-            {/* Header Section */}
             <div className="flex justify-between items-end border-b-4 border-amber-600/20 pb-16 relative z-10">
                <div className="space-y-4">
                   <div className="flex items-center gap-4">
@@ -131,7 +125,6 @@ const Checkout: React.FC<CheckoutProps> = ({ items, onBack, onOrderSuccess, onNa
                </div>
             </div>
 
-            {/* Client Info Section */}
             <div className="py-20 grid grid-cols-2 gap-24 relative z-10">
                <div className="space-y-6">
                   <h4 className="text-amber-500 font-black uppercase tracking-[0.4em] text-lg font-sans">The Royal Guest</h4>
@@ -150,7 +143,6 @@ const Checkout: React.FC<CheckoutProps> = ({ items, onBack, onOrderSuccess, onNa
                </div>
             </div>
 
-            {/* Items Section with Images */}
             <div className="relative z-10">
                <div className="grid grid-cols-12 gap-8 border-b-2 border-white/10 pb-6 mb-8 text-amber-600 font-black uppercase tracking-widest text-lg font-sans">
                   <div className="col-span-7">Imperial Selection</div>
@@ -177,7 +169,6 @@ const Checkout: React.FC<CheckoutProps> = ({ items, onBack, onOrderSuccess, onNa
                </div>
             </div>
 
-            {/* Total Section */}
             <div className="mt-20 pt-16 border-t-4 border-amber-600/20 relative z-10">
                <div className="max-w-md ml-auto space-y-6">
                   <div className="flex justify-between text-2xl text-gray-500 font-sans uppercase tracking-widest">
@@ -198,7 +189,6 @@ const Checkout: React.FC<CheckoutProps> = ({ items, onBack, onOrderSuccess, onNa
                </div>
             </div>
 
-            {/* Footer Seal */}
             <div className="mt-32 flex justify-between items-center relative z-10 opacity-60">
                <div className="space-y-2">
                   <p className="text-xl font-bold uppercase tracking-widest">N Sultan Restaurant</p>
@@ -222,8 +212,6 @@ const Checkout: React.FC<CheckoutProps> = ({ items, onBack, onOrderSuccess, onNa
   return (
     <div className="pt-48 pb-40 container mx-auto px-6 animate-in fade-in duration-1000">
       <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-20">
-         
-         {/* Left Side: Forms */}
          <div className="flex-1 space-y-12">
             <button 
               onClick={onBack}
@@ -352,7 +340,6 @@ const Checkout: React.FC<CheckoutProps> = ({ items, onBack, onOrderSuccess, onNa
             )}
          </div>
 
-         {/* Right Side: Summary Card */}
          <div className="lg:w-[450px] shrink-0">
             <div className="sticky top-48 glass-panel p-10 rounded-[50px] border-white/10 shadow-2xl space-y-10">
                <div className="flex items-center gap-4">
@@ -392,11 +379,6 @@ const Checkout: React.FC<CheckoutProps> = ({ items, onBack, onOrderSuccess, onNa
                      <span>Total</span>
                      <span className="text-amber-500">৳{grandTotal}</span>
                   </div>
-               </div>
-
-               <div className="bg-amber-600/5 p-6 rounded-3xl border border-amber-600/20">
-                  <p className="text-[10px] text-amber-500 font-black uppercase tracking-[0.3em] mb-2">Delivery Estimate</p>
-                  <p className="text-white font-medium">Expected Arrival: <span className="font-black">45-60 Minutes</span></p>
                </div>
             </div>
          </div>
