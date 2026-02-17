@@ -37,14 +37,13 @@ const MenuCard: React.FC<MenuCardProps> = ({ item, onAddToCart, onViewDetails })
       >
         <div className="absolute inset-0 glass-panel rounded-[50px] overflow-hidden group-hover:shadow-[0_40px_100px_rgba(217,119,6,0.2)] transition-all flex flex-col border border-white/5">
           
-          {/* Seductive Image Section */}
+          {/* Seductive Image Section - Overlay Removed for Clarity */}
           <div className="relative h-[65%] w-full overflow-hidden">
              <img 
                src={item.image} 
                alt={item.nameEn}
                className="w-full h-full object-cover transition-transform duration-[1.5s] group-hover:scale-125"
              />
-             <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-black/80"></div>
              
              {item.isPopular && (
                <div className="absolute top-6 left-6 bg-red-600 text-white px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-xl z-20">
@@ -53,8 +52,8 @@ const MenuCard: React.FC<MenuCardProps> = ({ item, onAddToCart, onViewDetails })
              )}
           </div>
 
-          {/* Text Content */}
-          <div className="p-8 space-y-4 flex-1 flex flex-col justify-end bg-gradient-to-t from-black to-transparent">
+          {/* Text Content with subtle background for readability */}
+          <div className="p-8 space-y-4 flex-1 flex flex-col justify-end bg-gradient-to-t from-black via-black/40 to-transparent">
             <div className="flex justify-between items-end">
                <div>
                  <h3 className="text-3xl font-black text-white leading-none tracking-tighter mb-1">{item.nameEn}</h3>

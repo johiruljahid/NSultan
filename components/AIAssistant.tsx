@@ -195,7 +195,6 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose, menuItems, o
                                 
                                 <div className="relative z-10 w-24 h-24 rounded-2xl overflow-hidden border border-white/10 shrink-0 shadow-2xl group-hover:scale-105 transition-transform duration-500">
                                    <img src={item.image} className="w-full h-full object-cover" alt={item.nameEn} />
-                                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
                                 </div>
 
                                 <div className="relative z-10 flex-1 min-w-0">
